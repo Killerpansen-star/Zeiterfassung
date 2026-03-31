@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Erfassung Wochenarbeitszeit</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #dbe3ef;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --ghost-bg: #eef4f3;
+      --ghost-line: #c7dedb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-text-size-adjust: 100%;
+    }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .sub, .hint { color: var(--muted); line-height: 1.45; }
+    .grid { display: grid; gap: 12px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    label {
+      display: block;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    input, textarea, button, select {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 12px;
+      font-size: 16px;
+      background: #fff;
+    }
+    textarea {
+      min-height: 130px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+    .day-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: #fbfdff;
+      margin-bottom: 12px;
+    }
+    .day-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+
+    .weekday {
+      background: linear-gradient(90deg, #2563eb, #1e3a8a);
+    }
+
+    .weekend {
+      background: linear-gradient(90deg, #9ca3af, #6b7280);
+    }
+    .block-card {
+      border: 1px solid #d9e5f2;
+      border-radius: 14px;
+      padding: 12px;
+      background: #ffffff;
+      margin-top: 10px;
+    }
+    .block-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #f9fbff;
+    }
+    .metric .k {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .metric .v {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .actions-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      min-height: 48px;
+    }
+    button:hover { background: var(--accent-dark); }
+    .ghost {
+      background: var(--ghost-bg);
+      color: var(--accent-dark);
+      border: 1px solid var(--ghost-line);
+    }
+    .ghost:hover { background: #e2efed; }
+    .mini-btn {
+      padding: 10px 12px;
+      min-height: 42px;
+    }
+    .signature-box {
+      border: 1px dashed #94a3b8;
+      border-radius: 14px;
+      background: #fff;
+      touch-action: none;
+      width: 100%;
+      height: 220px;
+      display: block;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    .status {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      margin-top: 12px;
+      line-height: 1.45;
+    }
+    .status strong { display: block; margin-bottom: 4px; }
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding-bottom: 24px;
+    }
+    .hidden { display: none; }
+    .day-total-row {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+    @media (max-width: 900px) {
+      .grid-2, .grid-3, .grid-4, .summary, .actions-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Erfassung Wochenarbeitszeit</h1>
+      <p class="hint" style="margin-top:-6px; margin-bottom:12px;"><strong>Version 2.0</strong> · Zeitblöcke pro Tag · mobile Eingabe</p>
+      <p class="sub">Pro Wochentag können ein oder mehrere Zeitblöcke erfasst werden. Nach Abschluss eines Tages werden die Zeitblöcke addiert und die Pause abgezogen.</p>
+      <div class="grid grid-3">
+        <div>
+          <label for="mitarbeiter">Name des Mitarbeiters</label>
+          <input id="mitarbeiter" placeholder="Vor- und Nachname" />
+        </div>
+        <div>
+          <label for="kw">Kalenderwoche</label>
+          <input id="kw" type="text" placeholder="wird automatisch berechnet" readonly />
+        </div>
+        <div>
+          <label for="firma">Firma</label>
+          <select id="firma">
+          <option value="">Bitte auswählen</option>
+          <option value="Aufzugtechnik Schiefer GmbH">Aufzugtechnik Schiefer GmbH</option>
+          <option value="Mein Aufzug GmbH">Mein Aufzug GmbH</option>
+        </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tageserfassung</h2>
+      <div class="hint">Jeder Zeitblock hat Start, Ende und eine Kategorie. Über „Zeit hinzufügen“ kommt ein weiterer Block dazu. Die Pause ist immer sichtbar und wird sofort in die Tageszeit eingerechnet.</div>
+      <div id="daysContainer"></div>
+      <div class="summary">
+        <div class="metric">
+          <span class="k">Wochenarbeitszeit gesamt</span>
+          <span class="v" id="sumWeek">00:00 h</span>
+        </div>
+        <div class="metric">
+          <span class="k">Gesamte Pausenzeit</span>
+          <span class="v" id="sumBreak">0 Min.</span>
+        </div>
+        <div class="metric">
+          <span class="k">Ausgefüllte Tage</span>
+          <span class="v" id="daysFilled">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Unterschrift Mitarbeiter</h2>
+      <canvas id="signatureCanvas" class="signature-box"></canvas>
+      <div class="actions-2">
+        <button type="button" class="ghost" onclick="clearSignature()">Unterschrift löschen</button>
+        <button type="button" onclick="savePDFOnly()">PDF für mich speichern</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Dateien erzeugen und versenden</h2>
+      <textarea id="ausgabe" readonly></textarea>
+      <div class="hint">Die CSV-Datei enthält pro Zeitblock eine eigene Zeile. Zusätzlich werden Tagessummen und Wochensumme ausgegeben.</div>
+      <div class="actions">
+        <button type="button" onclick="shareAllFiles()">CSV + PDF erzeugen und teilen</button>
+      </div>
+      <div class="actions-2">
+        <button type="button" class="ghost" onclick="prepareNextWeek()">Leere Seite für nächste Woche</button>
+      </div>
+      <div id="statusBox" class="status"><strong>Status</strong>Noch keine Dateien erzeugt.</div>
+    </div>
+
+    <div class="footer-note">Lokal im Browser: Die Daten bleiben auf dem Gerät, bis sie verschickt, gespeichert oder gelöscht werden.</div>
+  </div>
+
+  <script>
+    const APP_VERSION = '2.0';
+    const STORAGE_KEY = 'zeiterfassung_montage_v2_0';
+    const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+    const categoryOptions = ['Hallendienst', 'Fahrzeit', 'Montagezeit', 'Wartezeit', 'Service', 'Reparatur', 'Sonstiges', 'Urlaub', 'Frei', 'Krank'];
+    const categoryFieldMap = {
+      'Montagezeit': { label: 'Montageort', placeholder: 'Montageort eingeben' },
+      'Wartezeit': { label: 'Grund', placeholder: 'Grund eingeben' },
+      'Service': { label: 'Kundenname', placeholder: 'Kundenname eingeben' },
+      'Reparatur': { label: 'Kundenname', placeholder: 'Kundenname eingeben' },
+      'Sonstiges': { label: 'Text', placeholder: 'Text eingeben' }
+    };
+
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let drawing = false;
+    let dayState = dayNames.map(() => ({ blocks: [createEmptyBlock()], pause: '0', date: '' }));
+
+    function createEmptyBlock() {
+      return { start: '', end: '', category: 'Hallendienst', detail: '' };
+    }
+
+    function setStatus(message, title = 'Status') {
+      document.getElementById('statusBox').innerHTML = `<strong>${title}</strong>${message}`;
+    }
+
+    function timeToMinutes(value) {
+      if (!value || !String(value).includes(':')) return null;
+      const parts = String(value).split(':').map(Number);
+      if (parts.length !== 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return null;
+      return parts[0] * 60 + parts[1];
+    }
+
+    function formatHours(minutes) {
+      const safe = Math.max(0, Number(minutes) || 0);
+      const h = Math.floor(safe / 60);
+      const m = safe % 60;
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ' h';
+    }
+
+    function getISOWeek(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString + 'T00:00:00');
+      if (Number.isNaN(date.getTime())) return '';
+      const target = new Date(date.valueOf());
+      const dayNr = (date.getDay() + 6) % 7;
+      target.setDate(target.getDate() - dayNr + 3);
+      const firstThursday = new Date(target.getFullYear(), 0, 4);
+      const firstDayNr = (firstThursday.getDay() + 6) % 7;
+      firstThursday.setDate(firstThursday.getDate() - firstDayNr + 3);
+      return 1 + Math.round((target - firstThursday) / (7 * 24 * 60 * 60 * 1000));
+    }
+
+    function updateCalendarWeek() {
+      const dates = [];
+      dayState.forEach(day => { if (day.date) dates.push(day.date); });
+      const kwInput = document.getElementById('kw');
+      if (dates.length === 0) {
+        kwInput.value = '';
+        return;
+      }
+      dates.sort();
+      const week = getISOWeek(dates[0]);
+      kwInput.value = week ? `KW ${week}` : '';
+    }
+
+    function getBlockMinutes(block) {
+      const start = timeToMinutes(block.start);
+      const end = timeToMinutes(block.end);
+      if (start === null || end === null) return 0;
+      let diff = end - start;
+      if (diff < 0) diff += 24 * 60;
+      return diff;
+    }
+
+    function getDayOverlapErrors(day) {
+      const errors = [];
+      const ranges = day.blocks.map((block, index) => {
+        const start = timeToMinutes(block.start);
+        const end = timeToMinutes(block.end);
+        return { index, start, end };
+      }).filter(r => r.start !== null && r.end !== null);
+
+      for (let i = 0; i < ranges.length; i++) {
+        for (let j = i + 1; j < ranges.length; j++) {
+          const a = ranges[i];
+          const b = ranges[j];
+          const aOvernight = a.end < a.start;
+          const bOvernight = b.end < b.start;
+          if (aOvernight || bOvernight) continue;
+          const overlap = a.start < b.end && b.start < a.end;
+          if (overlap) {
+            errors.push(`Block ${a.index + 1} überschneidet sich mit Block ${b.index + 1}`);
+          }
+        }
+      }
+      return errors;
+    }
+
+    function getDayData(dayIndex) {
+      const day = dayState[dayIndex];
+      const blockMinutes = day.blocks.reduce((sum, block) => sum + getBlockMinutes(block), 0);
+      const pause = Math.max(0, parseInt(day.pause || '0', 10) || 0);
+      const worked = Math.max(0, blockMinutes - pause);
+      const hasContent = Boolean(day.date || day.blocks.some(b => b.start || b.end || b.detail || b.category !== 'Hallendienst') || pause > 0);
+      const overlapErrors = getDayOverlapErrors(day);
+      return { blockMinutes, pause, worked, hasContent, overlapErrors };
+    }
+
+    function getDetailConfig(category) {
+      return categoryFieldMap[category] || null;
+    }
+
+    function renderDays() {
+      const container = document.getElementById('daysContainer');
+      container.innerHTML = dayState.map((day, dayIndex) => {
+        const blocksHtml = day.blocks.map((block, blockIndex) => {
+          const detailConfig = getDetailConfig(block.category);
+          return `
+            <div class="block-card">
+              <div class="block-head">
+                <span>Zeitblock ${blockIndex + 1}</span>
+                ${day.blocks.length > 1 ? `<button type="button" class="ghost mini-btn" onclick="removeBlock(${dayIndex}, ${blockIndex})">Block löschen</button>` : ''}
+              </div>
+              <div class="grid grid-3">
+                <div>
+                  <label>Startzeit</label>
+                  <input type="time" value="${block.start}" onchange="updateBlockField(${dayIndex}, ${blockIndex}, 'start', this.value)" />
+                </div>
+                <div>
+                  <label>Endzeit</label>
+                  <input type="time" value="${block.end}" onchange="updateBlockField(${dayIndex}, ${blockIndex}, 'end', this.value)" />
+                </div>
+                <div>
+                  <label>Kategorie</label>
+                  <select onchange="updateBlockCategory(${dayIndex}, ${blockIndex}, this.value)">
+                    ${categoryOptions.map(opt => `<option value="${opt}" ${block.category === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+              ${detailConfig ? `
+                <div style="margin-top:10px;">
+                  <label>${detailConfig.label}</label>
+                  <input type="text" value="${block.detail || ''}" placeholder="${detailConfig.placeholder}" oninput="updateBlockField(${dayIndex}, ${blockIndex}, 'detail', this.value)" />
+                </div>` : ''}
+              <div class="hint" style="margin-top:8px;">Blockzeit: ${formatHours(getBlockMinutes(block))}</div>
+            </div>`;
+        }).join('');
+
+        const dayData = getDayData(dayIndex);
+        return `
+          <div class="day-card">
+            <div class="day-title ${dayIndex >= 5 ? 'weekend' : 'weekday'}">${dayNames[dayIndex]}</div>
+            <div class="grid grid-2">
+              <div>
+                <label>Datum</label>
+                <input type="date" value="${day.date}" onchange="updateDayDate(${dayIndex}, this.value)" />
+              </div>
+              <div>
+                <label>Tagesgesamtzeit</label>
+                <input readonly value="${formatHours(dayData.worked)}" />
+              </div>
+            </div>
+            ${blocksHtml}
+            <div class="day-total-row">
+              <div class="grid grid-3">
+                <div>
+                  <label>Pausenzeit in Minuten</label>
+                  <input type="number" min="0" step="1" value="${day.pause}" onchange="updatePause(${dayIndex}, this.value)" onblur="updatePause(${dayIndex}, this.value)" />
+                </div>
+                <div>
+                  <label>Summe Zeitblöcke</label>
+                  <input readonly value="${formatHours(dayData.blockMinutes)}" />
+                </div>
+                <div>
+                  <label>Tagesgesamtzeit abzüglich Pause</label>
+                  <input readonly value="${formatHours(dayData.worked)}" />
+                </div>
+              </div>
+            </div>
+            ${dayData.overlapErrors.length ? `<div class="status" style="margin-top:10px; border-color:#f1b5b5; background:#fff7f7;"><strong>Plausibilitätsprüfung</strong>${dayData.overlapErrors.join('<br>')}</div>` : ''}
+            <div class="actions-2">
+              <button type="button" class="ghost" onclick="finishDay(${dayIndex})">Fertig</button>
+              <button type="button" onclick="addBlock(${dayIndex})">Zeit hinzufügen</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function updateDayDate(dayIndex, value) {
+      dayState[dayIndex].date = value;
+      updateCalendarWeek();
+      updateSummaryAndMessage();
+      saveFormState();
+    }
+
+    function updateBlockField(dayIndex, blockIndex, field, value) {
+      dayState[dayIndex].blocks[blockIndex][field] = value;
+      updateSummaryAndMessage();
+      saveFormState();
+    }
+
+    function updateBlockCategory(dayIndex, blockIndex, value) {
+      dayState[dayIndex].blocks[blockIndex].category = value;
+      if (!getDetailConfig(value)) dayState[dayIndex].blocks[blockIndex].detail = '';
+      renderDays();
+      updateSummaryAndMessage();
+      saveFormState();
+    }
+
+    function addBlock(dayIndex) {
+      dayState[dayIndex].blocks.push(createEmptyBlock());
+      renderDays();
+      updateSummaryAndMessage();
+      saveFormState();
+    }
+
+    function removeBlock(dayIndex, blockIndex) {
+      if (dayState[dayIndex].blocks.length === 1) return;
+      dayState[dayIndex].blocks.splice(blockIndex, 1);
+      renderDays();
+      updateSummaryAndMessage();
+      saveFormState();
+    }
+
+    function finishDay(dayIndex) {
+      const errors = getDayData(dayIndex).overlapErrors;
+      renderDays();
+      updateSummaryAndMessage();
+      saveFormState();
+      if (errors.length) {
+        setStatus(`${dayNames[dayIndex]}: ${errors.join(' | ')}`, 'Plausibilitätsprüfung');
+      }
+    }
+
+    function updatePause(dayIndex, value) {
+      dayState[dayIndex].pause = value;
+      updateSummaryAndMessage();
+      saveFormState();
+    }
+
+    function updateSummaryAndMessage() {
+      let weekMinutes = 0;
+      let breakMinutes = 0;
+      let filledDays = 0;
+      let overlapCount = 0;
+      dayState.forEach((day, i) => {
+        const data = getDayData(i);
+        weekMinutes += data.worked;
+        breakMinutes += data.pause;
+        if (data.hasContent) filledDays += 1;
+        overlapCount += data.overlapErrors.length;
+      });
+      document.getElementById('sumWeek').textContent = formatHours(weekMinutes);
+      document.getElementById('sumBreak').textContent = `${breakMinutes} Min.`;
+      document.getElementById('daysFilled').textContent = String(filledDays);
+      buildMessage();
+      if (overlapCount === 0) {
+        setStatus('Keine Überschneidungen erkannt.', 'Plausibilitätsprüfung');
+      }
+    }
+
+    function updateAll() {
+      updateCalendarWeek();
+      renderDays();
+      updateSummaryAndMessage();
+      saveFormState();
+    }
+
+    function hasSignature() {
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] !== 0) return true;
+      }
+      return false;
+    }
+
+    function buildMessage() {
+      const lines = [];
+      const firma = document.getElementById('firma').value.trim();
+      const name = document.getElementById('mitarbeiter').value.trim();
+      const kw = document.getElementById('kw').value.trim();
+      lines.push('Erfassung Wochenarbeitszeit');
+      if (firma) lines.push(`Firma: ${firma}`);
+      if (name) lines.push(`Name: ${name}`);
+      if (kw) lines.push(`Kalenderwoche: ${kw}`);
+      lines.push('');
+      dayState.forEach((day, i) => {
+        const dayData = getDayData(i);
+        if (!dayData.hasContent) return;
+        lines.push(dayNames[i]);
+        lines.push(`Datum: ${day.date ? new Date(day.date + 'T00:00:00').toLocaleDateString('de-DE') : '-'}`);
+        day.blocks.forEach((block, idx) => {
+          lines.push(`Block ${idx + 1}: ${block.start || '--:--'} - ${block.end || '--:--'} | ${block.category}${block.detail ? ' | ' + block.detail : ''}`);
+        });
+        lines.push(`Pause: ${day.pause || '0'} Min.`);
+        lines.push(`Tagesgesamtzeit: ${formatHours(dayData.worked)}`);
+        lines.push('');
+      });
+      lines.push(`Wochenarbeitszeit gesamt: ${document.getElementById('sumWeek').textContent}`);
+      lines.push(`Gesamte Pausenzeit: ${document.getElementById('sumBreak').textContent}`);
+      lines.push(`Unterschrift: ${hasSignature() ? 'vorhanden' : 'fehlt'}`);
+      document.getElementById('ausgabe').value = lines.join('\n');
+    }
+
+    function saveFormState() {
+      const state = {
+        version: APP_VERSION,
+        mitarbeiter: document.getElementById('mitarbeiter').value,
+        kw: document.getElementById('kw').value,
+        firma: document.getElementById('firma').value,
+        dayState,
+        signature: hasSignature() ? canvas.toDataURL('image/png') : ''
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function restoreFormState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const state = JSON.parse(raw);
+        document.getElementById('mitarbeiter').value = state.mitarbeiter || '';
+        document.getElementById('firma').value = state.firma || '';
+        if (Array.isArray(state.dayState) && state.dayState.length === 7) {
+          dayState = state.dayState;
+        }
+        updateAll();
+        if (state.signature) {
+          const img = new Image();
+          img.onload = () => {
+            const rect = canvas.getBoundingClientRect();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, rect.width, rect.height);
+            buildMessage();
+          };
+          img.src = state.signature;
+        }
+      } catch (error) {
+        setStatus('Gespeicherte Daten konnten nicht geladen werden.', 'Hinweis');
+      }
+    }
+
+    function escapeCSV(value) {
+      const text = String(value ?? '');
+      if (text.includes(';') || text.includes('"') || text.includes('\n')) {
+        return '"' + text.split('"').join('""') + '"';
+      }
+      return text;
+    }
+
+    function getCSVContent() {
+      const rows = [];
+      rows.push([
+        'Name', 'Kalenderwoche', 'Firma', 'Wochentag', 'Datum', 'Block Nummer', 'Kategorie', 'Startzeit', 'Endzeit', 'Blockdauer', 'Zusatzinfo', 'Pause Minuten Tag', 'Tagesgesamtzeit'
+      ]);
+      const name = document.getElementById('mitarbeiter').value.trim();
+      const kw = document.getElementById('kw').value.trim();
+      const firma = document.getElementById('firma').value.trim();
+      dayState.forEach((day, i) => {
+        const dayData = getDayData(i);
+        if (!dayData.hasContent) return;
+        day.blocks.forEach((block, idx) => {
+          rows.push([
+            name,
+            kw,
+            firma,
+            dayNames[i],
+            day.date ? new Date(day.date + 'T00:00:00').toLocaleDateString('de-DE') : '',
+            idx + 1,
+            block.category,
+            block.start || '',
+            block.end || '',
+            formatHours(getBlockMinutes(block)),
+            block.detail || '',
+            day.pause || '0',
+            formatHours(dayData.worked)
+          ]);
+        });
+      });
+      rows.push([]);
+      rows.push(['Wochenarbeitszeit gesamt', document.getElementById('sumWeek').textContent]);
+      rows.push(['Gesamte Pausenzeit', document.getElementById('sumBreak').textContent]);
+      return rows.map(row => row.map(escapeCSV).join(';')).join('\n');
+    }
+
+    function makeSafeName() {
+      const rawName = document.getElementById('mitarbeiter').value.trim() || 'Mitarbeiter';
+      return Array.from(rawName)
+        .filter(ch => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789äöüÄÖÜß-_ '.includes(ch))
+        .join('')
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .join('_') || 'Mitarbeiter';
+    }
+
+    function getCurrentKwText() {
+      return (document.getElementById('kw').value.trim() || 'KW').split(' ').filter(Boolean).join('_');
+    }
+
+    function getCSVFilename() {
+      return `Zeiterfassung_${makeSafeName()}_${getCurrentKwText()}.csv`;
+    }
+
+    function getPDFFilename() {
+      return `Zeiterfassung_${makeSafeName()}_${getCurrentKwText()}.pdf`;
+    }
+
+    async function generatePDFBlob() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 12;
+      const lineHeight = 6;
+      let y = 14;
+
+      function addLine(text, size = 11, bold = false) {
+        pdf.setFont('helvetica', bold ? 'bold' : 'normal');
+        pdf.setFontSize(size);
+        const lines = pdf.splitTextToSize(String(text), pageWidth - margin * 2);
+        lines.forEach(line => {
+          if (y > pageHeight - 18) {
+            pdf.addPage();
+            y = 14;
+          }
+          pdf.text(line, margin, y);
+          y += lineHeight;
+        });
+      }
+
+      addLine('Erfassung Wochenarbeitszeit', 15, true);
+      addLine(`Firma: ${document.getElementById('firma').value.trim() || '-'}`);
+      addLine(`Name: ${document.getElementById('mitarbeiter').value.trim() || '-'}`);
+      addLine(`Kalenderwoche: ${document.getElementById('kw').value.trim() || '-'}`);
+      addLine('');
+      dayState.forEach((day, i) => {
+        const dayData = getDayData(i);
+        if (!dayData.hasContent) return;
+        addLine(dayNames[i], 12, true);
+        addLine(`Datum: ${day.date ? new Date(day.date + 'T00:00:00').toLocaleDateString('de-DE') : '-'}`);
+        day.blocks.forEach((block, idx) => {
+          addLine(`Block ${idx + 1}: ${block.start || '--:--'} - ${block.end || '--:--'} | ${block.category}${block.detail ? ' | ' + block.detail : ''}`);
+        });
+        addLine(`Pause: ${day.pause || '0'} Min.`);
+        addLine(`Tagesgesamtzeit: ${formatHours(dayData.worked)}`);
+        addLine('');
+      });
+      addLine(`Wochenarbeitszeit gesamt: ${document.getElementById('sumWeek').textContent}`, 12, true);
+      addLine(`Gesamte Pausenzeit: ${document.getElementById('sumBreak').textContent}`);
+      addLine('');
+      addLine('Unterschrift Mitarbeiter:', 12, true);
+      if (hasSignature()) {
+        const sigData = canvas.toDataURL('image/png');
+        const sigWidth = 80;
+        const sigHeight = 30;
+        if (y + sigHeight > pageHeight - 15) {
+          pdf.addPage();
+          y = 14;
+        }
+        pdf.rect(margin, y, sigWidth, sigHeight);
+        pdf.addImage(sigData, 'PNG', margin + 2, y + 2, sigWidth - 4, sigHeight - 4);
+      } else {
+        addLine('Keine Unterschrift vorhanden.');
+      }
+      return pdf.output('blob');
+    }
+
+    function downloadFile(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function createExportFiles() {
+      buildMessage();
+      const csvBlob = new Blob([getCSVContent()], { type: 'text/csv;charset=utf-8;' });
+      const pdfBlob = await generatePDFBlob();
+      const csvFile = new File([csvBlob], getCSVFilename(), { type: 'text/csv;charset=utf-8;' });
+      const pdfFile = new File([pdfBlob], getPDFFilename(), { type: 'application/pdf' });
+      return { csvBlob, pdfBlob, csvFile, pdfFile };
+    }
+
+    async function shareAllFiles() {
+      try {
+        setStatus('CSV und PDF werden erzeugt ...');
+        const files = await createExportFiles();
+        if (navigator.canShare && navigator.canShare({ files: [files.csvFile, files.pdfFile] })) {
+          await navigator.share({
+            title: 'Wochen-Zeiterfassung',
+            text: 'CSV und PDF der Wochen-Zeiterfassung',
+            files: [files.csvFile, files.pdfFile]
+          });
+          setStatus('CSV und PDF wurden erzeugt und zum Teilen geöffnet.', 'Erfolgreich');
+        } else {
+          downloadFile(files.csvBlob, files.csvFile.name);
+          downloadFile(files.pdfBlob, files.pdfFile.name);
+          setStatus('Direktes Teilen wird auf diesem Gerät nicht unterstützt. Beide Dateien wurden heruntergeladen.', 'Hinweis');
+        }
+      } catch (error) {
+        setStatus('Die Dateien konnten nicht erzeugt oder geteilt werden.', 'Fehler');
+      }
+    }
+
+    async function savePDFOnly() {
+      try {
+        setStatus('PDF wird gespeichert ...');
+        const pdfBlob = await generatePDFBlob();
+        downloadFile(pdfBlob, getPDFFilename());
+        setStatus('Die PDF wurde gespeichert.', 'Erfolgreich');
+      } catch (error) {
+        setStatus('Die PDF konnte nicht gespeichert werden.', 'Fehler');
+      }
+    }
+
+    function prepareNextWeek() {
+      if (!confirm('Soll die Seite für die nächste Woche geleert werden? Bereits eingegebene Daten werden entfernt.')) return;
+      document.getElementById('mitarbeiter').value = '';
+      document.getElementById('firma').value = '';
+      document.getElementById('kw').value = '';
+      dayState = dayNames.map(() => ({ blocks: [createEmptyBlock()], pause: '0', date: '' }));
+      clearSignature(true);
+      localStorage.removeItem(STORAGE_KEY);
+      updateAll();
+      setStatus('Die Seite wurde geleert. Jetzt können neue Daten für die nächste Woche eingegeben werden.', 'Bereit');
+    }
+
+    function resizeCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const displayWidth = Math.max(1, rect.width || canvas.clientWidth || 300);
+      const displayHeight = Math.max(1, rect.height || canvas.clientHeight || 220);
+      const backup = hasSignature() ? canvas.toDataURL('image/png') : null;
+      canvas.width = Math.round(displayWidth * ratio);
+      canvas.height = Math.round(displayHeight * ratio);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(ratio, ratio);
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#111827';
+      if (backup) {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+        img.src = backup;
+      }
+    }
+
+    function pointerPos(event) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    function startDraw(event) {
+      event.preventDefault();
+      drawing = true;
+      const pos = pointerPos(event);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    }
+
+    function moveDraw(event) {
+      if (!drawing) return;
+      event.preventDefault();
+      const pos = pointerPos(event);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }
+
+    function endDraw(event) {
+      if (!drawing) return;
+      if (event) event.preventDefault();
+      drawing = false;
+      buildMessage();
+      saveFormState();
+    }
+
+    function clearSignature(silent = false) {
+      const displayWidth = canvas.clientWidth || canvas.getBoundingClientRect().width || 300;
+      const displayHeight = canvas.clientHeight || canvas.getBoundingClientRect().height || 220;
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+      if (!silent) {
+        buildMessage();
+        saveFormState();
+      }
+    }
+
+    canvas.addEventListener('pointerdown', startDraw, { passive: false });
+    canvas.addEventListener('pointermove', moveDraw, { passive: false });
+    canvas.addEventListener('pointerup', endDraw, { passive: false });
+    canvas.addEventListener('pointerleave', endDraw, { passive: false });
+    canvas.addEventListener('pointercancel', endDraw, { passive: false });
+
+    document.getElementById('mitarbeiter').addEventListener('input', () => { updateSummaryAndMessage(); saveFormState(); });
+    document.getElementById('firma').addEventListener('input', () => { updateSummaryAndMessage(); saveFormState(); });
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    updateAll();
+    restoreFormState();
+  </script>
+</body>
+</html>
